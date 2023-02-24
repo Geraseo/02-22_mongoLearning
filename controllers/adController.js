@@ -2,8 +2,8 @@ const asyncHandler = require("express-async-handler");
 
 const Ad = require("../models/adModel");
 
-// @desc Get goals
-// @route GET /api/goals
+// @desc Get ads
+// @route GET /api/ads
 // @access PRIVATE
 const getAds = asyncHandler(async (req, res) => {
   const ads = await Ad.find({ user: req.user.id });
@@ -27,8 +27,8 @@ const setAd = asyncHandler(async (req, res) => {
   res.status(200).json(ad);
 });
 
-// @desc Update goal
-// @route PUT /api/goals/:id
+// @desc Update ad
+// @route PUT /api/ads/:id
 // @access PRIVATE
 const updateAd = asyncHandler(async (req, res) => {
   const ad = await Ad.findById(req.params.id);
@@ -45,15 +45,19 @@ const updateAd = asyncHandler(async (req, res) => {
   }
 
   // make sure the logged in user matches the goal user
-  if (ad.user.toString() !== req.user.id) {
+  if (ad.user.toString() !== req.user.id && req.user.role !== "admin") {
     res.status(401);
     throw new Error("User not authorized");
   }
 
-  const updateAd = await Ad.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-  });
-  res.status(200).json(updateAd);
+  // if admin or ad creator can edit
+  if (req.user.role === "admin" || ad.user.toString() === req.user.id) {
+    const updateAd = await Ad.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.status(200).json(updateAd);
+    // console.log(req.user.role);
+  }
 });
 
 // @desc Delete goal
@@ -74,14 +78,21 @@ const deleteAd = asyncHandler(async (req, res) => {
   }
 
   // make sure the logged in user matches the goal user
-  if (ad.user.toString() !== req.user.id) {
+  if (ad.user.toString() !== req.user.id && req.user.role !== "admin") {
     res.status(401);
     throw new Error("User not authorized");
   }
 
-  await ad.remove();
+  if (req.user.role === "admin" || ad.user.toString() === req.user.id) {
+    await ad.remove();
+    res.status(200).json({ message: "Ad removed" });
+  }
+});
+//_______
 
-  res.status(200).json({ id: req.params.id });
+const getAllAds = asyncHandler(async (req, res) => {
+  const ads = await Ad.find({});
+  res.status(200).json(ads);
 });
 
 module.exports = {
@@ -89,4 +100,5 @@ module.exports = {
   setAd,
   updateAd,
   deleteAd,
+  getAllAds,
 };
